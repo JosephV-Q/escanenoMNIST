@@ -38,11 +38,6 @@
         const btnEnviar = document.getElementById('btnEnviar');
         const divResultado = document.getElementById('resultado');
 
-        function mostrarError(mensaje) {
-            divResultado.classList.add('error');
-            divResultado.textContent = mensaje;
-        }
-
         // Mostrar la imagen apenas el usuario la selecciona
         inputImagen.addEventListener('change', function() {
             const file = this.files[0];
@@ -53,7 +48,7 @@
                     preview.classList.add('visible');
                     textoPreview.style.display = 'none';
                     divResultado.classList.remove('error');
-                    divResultado.textContent = ''; // Limpiar resultados anteriores
+                    divResultado.innerHTML = ''; // Limpiar resultados anteriores
                 }
                 reader.readAsDataURL(file);
             }
@@ -67,8 +62,7 @@
 
             btnEnviar.disabled = true;
             btnEnviar.textContent = 'Procesando...';
-            divResultado.classList.remove('error');
-            divResultado.textContent = '';
+            divResultado.innerHTML = '';
 
             const formData = new FormData();
             formData.append('imagen', file);
@@ -79,22 +73,19 @@
                     method: 'POST',
                     body: formData
                 });
-
+                
                 const data = await response.json();
-
+                
                 if (response.ok) {
-                    const confianza = document.createElement('small');
-                    confianza.textContent = `Confianza: ${data.confianza}%`;
-                    divResultado.replaceChildren(
-                        document.createTextNode(`¡Es un ${data.numero_predicho}! `),
-                        document.createElement('br'),
-                        confianza
-                    );
+                    divResultado.classList.remove('error');
+                    divResultado.innerHTML = `¡Es un ${data.numero_predicho}! <br><small>Confianza: ${data.confianza}%</small>`;
                 } else {
-                    mostrarError(`Error: ${data.error || 'No se pudo analizar la imagen.'}`);
+                    divResultado.classList.add('error');
+                    divResultado.innerHTML = `Error: ${data.error}`;
                 }
             } catch (error) {
-                mostrarError('Error de conexión con el servidor.');
+                divResultado.classList.add('error');
+                divResultado.innerHTML = 'Error de conexión con el servidor.';
             } finally {
                 btnEnviar.disabled = false;
                 btnEnviar.textContent = 'Analizar Imagen';
