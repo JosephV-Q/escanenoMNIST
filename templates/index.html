@@ -4,24 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconocedor MNIST</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
 <body>
+    <main class="contenedor">
+        <section class="tarjeta">
+            <h1>Reconocedor de Números <span>(IA)</span></h1>
+            <p class="descripcion">Sube una imagen de un número escrito a mano (0-9).</p>
 
-    <h1>Reconocedor de Números (IA)</h1>
-    <p>Sube una imagen de un número escrito a mano (0-9).</p>
+            <form id="formulario">
+                <label class="selector-imagen" for="inputImagen">
+                    Elegir imagen
+                </label>
+                <input type="file" id="inputImagen" accept="image/*" required>
 
-    <form id="formulario">
-        <input type="file" id="inputImagen" accept="image/*" required>
-        
-        <div class="preview-caja">
-            <img id="preview" style="display: none;" alt="Previsualización">
-            <span id="textoPreview">Vista previa de la imagen</span>
-        </div>
+                <div class="preview-caja">
+                    <img id="preview" alt="Previsualización">
+                    <span id="textoPreview">Vista previa de la imagen</span>
+                </div>
 
-        <button type="submit" id="btnEnviar">Analizar Imagen</button>
-    </form>
+                <button type="submit" id="btnEnviar">Analizar Imagen</button>
+            </form>
 
-    <div id="resultado"></div>
+            <div id="resultado" role="status" aria-live="polite"></div>
+        </section>
+    </main>
 
     <script>
         const inputImagen = document.getElementById('inputImagen');
@@ -31,6 +38,11 @@
         const btnEnviar = document.getElementById('btnEnviar');
         const divResultado = document.getElementById('resultado');
 
+        function mostrarError(mensaje) {
+            divResultado.classList.add('error');
+            divResultado.textContent = mensaje;
+        }
+
         // Mostrar la imagen apenas el usuario la selecciona
         inputImagen.addEventListener('change', function() {
             const file = this.files[0];
@@ -38,9 +50,10 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
-                    preview.style.display = 'block';
+                    preview.classList.add('visible');
                     textoPreview.style.display = 'none';
-                    divResultado.innerHTML = ''; // Limpiar resultados anteriores
+                    divResultado.classList.remove('error');
+                    divResultado.textContent = ''; // Limpiar resultados anteriores
                 }
                 reader.readAsDataURL(file);
             }
@@ -54,7 +67,8 @@
 
             btnEnviar.disabled = true;
             btnEnviar.textContent = 'Procesando...';
-            divResultado.innerHTML = '';
+            divResultado.classList.remove('error');
+            divResultado.textContent = '';
 
             const formData = new FormData();
             formData.append('imagen', file);
@@ -65,16 +79,22 @@
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
-                    divResultado.innerHTML = `¡Es un ${data.numero_predicho}! <br><small style="color: gray">Confianza: ${data.confianza}%</small>`;
+                    const confianza = document.createElement('small');
+                    confianza.textContent = `Confianza: ${data.confianza}%`;
+                    divResultado.replaceChildren(
+                        document.createTextNode(`¡Es un ${data.numero_predicho}! `),
+                        document.createElement('br'),
+                        confianza
+                    );
                 } else {
-                    divResultado.innerHTML = `<span style="color: red">Error: ${data.error}</span>`;
+                    mostrarError(`Error: ${data.error || 'No se pudo analizar la imagen.'}`);
                 }
             } catch (error) {
-                divResultado.innerHTML = `<span style="color: red">Error de conexión con el servidor.</span>`;
+                mostrarError('Error de conexión con el servidor.');
             } finally {
                 btnEnviar.disabled = false;
                 btnEnviar.textContent = 'Analizar Imagen';
